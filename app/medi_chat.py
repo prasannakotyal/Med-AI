@@ -27,6 +27,7 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
+st.session_state.chat_session = None
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
