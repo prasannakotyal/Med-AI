@@ -33,9 +33,21 @@ if "chat_session" not in st.session_state:
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
+import streamlit as st
+
 def medichat_app():
     # Display the chatbot's title on the page
-    st.title("👩‍⚕️ MediChat - Your Medical Assistant")
+    st.title("‍⚕️ MediChat - Your Medical Assistant")
+
+    # Ensure chat_session is initialized in session_state
+    if "chat_session" not in st.session_state:
+        st.session_state.chat_session = None
+
+    # Initialize chat session if not already present
+    if st.session_state.chat_session is None:
+        # Configure model here if needed (assuming model setup happens elsewhere)
+        model = gen_ai.GenerativeModel('gemini-pro')
+        st.session_state.chat_session = model.start_chat(history=[])
 
     # Display the chat history
     for message in st.session_state.chat_session.history:
