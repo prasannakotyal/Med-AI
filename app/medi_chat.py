@@ -29,11 +29,10 @@ def medichat_app():
             st.markdown(message.parts[0].text)
 
     # Input field for user's message
-    user_prompt = st.chat_input("Ask MediChat...")
+    user_prompt = st.text_input("Ask MediChat...")
     if user_prompt:
         # Add user's message to chat and display it
-        st.session_state.chat_session.add_user_message(user_prompt)
-        st.chat_message("user").markdown(user_prompt)
+        st.session_state.chat_session.history.append(user_prompt)  # Append user's message to history
 
         # Send user's message to Gemini-Pro and get the response
         gemini_response = st.session_state.chat_session.send_message(user_prompt)
@@ -41,7 +40,3 @@ def medichat_app():
         # Display Gemini-Pro's response
         with st.chat_message("assistant"):
             st.markdown(gemini_response.text)
-
-# Example usage in another script or module
-# if __name__ == "__main__":
-#     medichat_app()
