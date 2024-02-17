@@ -28,26 +28,27 @@ def translate_role_for_streamlit(user_role):
 
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
-    st.session_state.chat_session = ''
+    st.session_state.chat_session = []
 
 def medichat_app():
     st.title("👩‍⚕️- MediChat (Your personal medical assistant)")
 
     # Display the chat history
-    if st.session_state.chat_session:
-        for message in st.session_state.chat_session:
-            with st.chat_message(translate_role_for_streamlit(message.role)):
-                st.markdown(message.parts[0].text)
+    for message in st.session_state.chat_session:
+        with st.chat_message(translate_role_for_streamlit(message.role)):
+            st.markdown(message.parts[0].text)
 
     # Input field for user's message
     user_prompt = st.chat_input("Ask medichat...")
     if user_prompt:
         # Add user's message to chat and display it
+        st.session_state.chat_session.append({"role": "user", "parts": [{"text": user_prompt}]})
         st.chat_message("user").markdown(user_prompt)
 
         # Send user's message to Gemini-Pro and get the response
         gemini_response = model.start_chat(history=[user_prompt])
 
         # Display Gemini-Pro's response
+        st.session_state.chat_session.append({"role": "model", "parts": [{"text": gemini_response.parts[0].text}]})
         with st.chat_message("assistant"):
             st.markdown(gemini_response.parts[0].text)
