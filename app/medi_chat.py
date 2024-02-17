@@ -35,8 +35,8 @@ def medichat_app():
 
     # Display the chat history
     for message in st.session_state.chat_session:
-        with st.chat_message(translate_role_for_streamlit(message.role)):
-            st.markdown(message.parts[0].text)
+        with st.chat_message(translate_role_for_streamlit(message["role"])):
+            st.markdown(message["parts"][0]["text"])
 
     # Input field for user's message
     user_prompt = st.chat_input("Ask medichat...")
