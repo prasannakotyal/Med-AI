@@ -19,6 +19,10 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 gen_ai.configure(api_key=GOOGLE_API_KEY)
 model = gen_ai.GenerativeModel('gemini-pro')
 
+# Initialize chat session in Streamlit if not already present
+if "chat_session" not in st.session_state:
+    st.session_state.chat_session = model.start_chat(history=[])
+
 # Function to translate roles between Gemini-Pro and Streamlit terminology
 def translate_role_for_streamlit(user_role):
     if user_role == "model":
@@ -26,10 +30,7 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
-# Initialize chat session in Streamlit if not already present
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
-
+# Function to handle the MediChat app
 def medichat_app():
     # Display the chatbot's title on the page
     st.title("‍⚕️ MediChat - Your Medical Assistant")
@@ -45,3 +46,20 @@ def medichat_app():
         # Add user's message to chat and display it
         st.session_state.chat_session.add_user_message(user_prompt)
         st.chat_message("user").markdown(user_prompt)
+
+# Streamlit UI
+st.title("Welcome to Care Compass")
+
+# Create tabs
+tabs = ["MediChat", "Calorie Tracker", "Nearby Places"] # Add "Diet Recommender"
+selected_tab = st.radio("Choose Option", tabs)
+
+# Display the selected tab
+if selected_tab == "MediChat":
+    medichat_app()
+elif selected_tab == "Calorie Tracker":
+    calorie_tracker_app()
+elif selected_tab == "Nearby Places":
+    nearby_places_app()
+# elif selected_tab == "Diet Recommender":  # Add this block for the Diet Recommender tab
+#     diet_recommender_app()
