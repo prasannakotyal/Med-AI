@@ -28,11 +28,15 @@ def translate_role_for_streamlit(user_role):
 
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
+    st.session_state.chat_session = None  # Initialize with None
 
 def medichat_app():
     st.title("👩‍⚕️- MediChat (Your personal medical assistant)")
-    
+
+    # Initialize st.session_state if chat_session is None
+    if st.session_state.chat_session is None:
+        st.session_state.chat_session = model.start_chat(history=[])
+
     # Display the chat history
     for message in st.session_state.chat_session.history:
         with st.chat_message(translate_role_for_streamlit(message.role)):
@@ -50,3 +54,4 @@ def medichat_app():
         # Display Gemini-Pro's response
         with st.chat_message("assistant"):
             st.markdown(gemini_response.text)
+
