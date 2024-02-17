@@ -34,7 +34,7 @@ def translate_role_for_streamlit(user_role):
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-
+def medichat_app():
 # Display the chatbot's title on the page
 st.title("🤖 Gemini Pro - ChatBot")
 
