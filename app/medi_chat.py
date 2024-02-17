@@ -1,5 +1,4 @@
 import os
-
 import streamlit as st
 from dotenv import load_dotenv
 import google.generativeai as gen_ai
@@ -27,27 +26,13 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = None
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
-import streamlit as st
-
 def medichat_app():
     # Display the chatbot's title on the page
     st.title("‍⚕️ MediChat - Your Medical Assistant")
-
-    # Ensure chat_session is initialized in session_state
-    if "chat_session" not in st.session_state:
-        st.session_state.chat_session = None
-
-    # Initialize chat session if not already present
-    if st.session_state.chat_session is None:
-        # Configure model here if needed (assuming model setup happens elsewhere)
-        model = gen_ai.GenerativeModel('gemini-pro')
-        st.session_state.chat_session = model.start_chat(history=[])
 
     # Display the chat history
     for message in st.session_state.chat_session.history:
@@ -60,9 +45,3 @@ def medichat_app():
         # Add user's message to chat and display it
         st.chat_message("user").markdown(user_prompt)
 
-        # Send user's message to Gemini-Pro and get the response
-        gemini_response = st.session_state.chat_session.send_message(user_prompt)
-
-        # Display Gemini-Pro's response
-        with st.chat_message("assistant"):
-            st.markdown(gemini_response.text)
