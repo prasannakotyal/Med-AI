@@ -43,5 +43,5 @@ def medichat_app():
     user_prompt = st.chat_input("Ask MediChat...")
     if user_prompt:
         # Add user's message to chat and display it
+        st.session_state.chat_session.add_user_message(user_prompt)
         st.chat_message("user").markdown(user_prompt)
-
