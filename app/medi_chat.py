@@ -33,8 +33,8 @@ if "chat_session" not in st.session_state:
 def medichat_app():
     st.title("👩‍⚕️- MediChat (Your personal medical assistant)")
 
-    # Initialize st.session_state if chat_session is None
-    if st.session_state.chat_session is None:
+    # Ensure proper initialization of st.session_state
+    if not hasattr(st.session_state, 'chat_session') or st.session_state.chat_session is None:
         st.session_state.chat_session = model.start_chat(history=[])
 
     # Display the chat history
@@ -46,10 +46,12 @@ def medichat_app():
     user_prompt = st.chat_input("Ask medichat...")
     if user_prompt:
         # Add user's message to chat and display it
+        st.session_state.chat_session.send_message(user_prompt)
         st.chat_message("user").markdown(user_prompt)
 
         # Send user's message to Gemini-Pro and get the response
-        gemini_response = st.session_state.chat_session.send_message(user_prompt)
+        gemini_response = st.session_state.chat_session.get_response()
+        st.session_state.chat_session.add_message(role="assistant", content=gemini_response.text)
 
         # Display Gemini-Pro's response
         with st.chat_message("assistant"):
