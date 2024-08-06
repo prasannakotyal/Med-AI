@@ -1,68 +1,92 @@
-# diet_recommender.py
-
 import streamlit as st
 from dotenv import load_dotenv
 import os
-import google.generativeai as gen_ai
+import requests
+from PIL import Image
+from io import BytesIO
+from bs4 import BeautifulSoup  # Import BeautifulSoup for HTML parsing
 
 # Load environment variables
 load_dotenv()
 
-# Set up Google Gemini-Pro AI model
-gen_ai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = gen_ai.GenerativeModel('gemini-pro')
-
-# Function to translate roles between Gemini-Pro and Streamlit terminology
-def translate_role_for_streamlit(user_role):
-    if user_role == "model":
-        return "assistant"
-    else:
-        return user_role
-
-def diet_recommender_app():
-    st.title("🍏 Diet Recommender")
-
-    # Initialize st.session_state if not already initialized
-    if 'chat_session' not in st.session_state:
-        st.session_state.chat_session = model.start_chat(history=[])
-
-    # User input form
-    age = st.slider("Age", 1, 100, 25)
-    gender = st.radio("Gender", ["Male", "Female"])
-    weight = st.slider("Weight (KG)", 40.0, 200.0, 70.0)
-    height = st.slider("Height (CM)", 100.0, 250.0, 170.0)
+# Function to convert HTML content to plain text with bullet points
+def html_to_text(html_content):
+    soup = BeautifulSoup(html_content, "html.parser")
     
-    # Merged option for diet preference
-    diet_preference = st.radio("Diet Preference", ["Veg", "Non-Veg"])
+    # Process unordered lists (<ul>)
+    for ul in soup.find_all('ul'):
+        items = ul.find_all('li')
+        bullet_points = "\n".join(f"• {item.get_text(strip=True)}" for item in items)
+        ul.replace_with(bullet_points)
     
-    disease = st.text_input("Generic Disease (if any)", "")
-    region = st.text_input("Region (e.g., Asia, North America)", "")
-    allergics = st.text_input("Allergies (if any)", "")
+    # Process ordered lists (<ol>)
+    for ol in soup.find_all('ol'):
+        items = ol.find_all('li')
+        numbered_items = "\n".join(f"{i+1}. {item.get_text(strip=True)}" for i, item in enumerate(items))
+        ol.replace_with(numbered_items)
+    
+    return soup.get_text(separator="\n", strip=True)
 
-    # New option for workout preference
-    workout_preference = st.radio("Workout Preference", ["Cardio", "Strength Training", "Yoga", "Any"])
+# Function to get diet recommendations and recipes
+def get_diet_recommendations(diet_type, api_key):
+    # Spoonacular API endpoint for recipes
+    api_url = (
+        f"https://api.spoonacular.com/recipes/complexSearch?"
+        f"diet={diet_type}&number=5&apiKey={api_key}"
+    )
+    
+    response = requests.get(api_url)
+    results = response.json().get("results", [])
 
-    # Submit button
+    return results
+
+def get_recipe_details(recipe_id, api_key):
+    # Spoonacular API endpoint for recipe details
+    api_url = f"https://api.spoonacular.com/recipes/{recipe_id}/information?apiKey={api_key}"
+    
+    response = requests.get(api_url)
+    return response.json()
+
+def diet_recommendation_app():
+    st.title("Diet Recommendation App")
+
+    # User input for diet type
+    diet_type = st.selectbox("Select your diet type:", ["vegan", "vegetarian", "paleo", "keto", "gluten-free"])
+
+    # API Key from environment variables
+    api_key = os.getenv("spoonacular_api_key")
+
     if st.button("Get Recommendations"):
-        # Prepare user input for the Google API
-        user_input = (
-            f"Age: {age}\n"
-            f"Gender: {gender.lower()}\n"
-            f"Weight: {weight}\n"
-            f"Height: {height}\n"
-            f"Diet Preference: {diet_preference.lower()}\n"
-            f"Generic Disease: {disease}\n"
-            f"Region: {region}\n"
-            f"Allergies: {allergics}\n"
-            f"Workout Preference: {workout_preference}"
-        )
+        if api_key:
+            recipes = get_diet_recommendations(diet_type, api_key)
+            
+            if recipes:
+                for recipe in recipes:
+                    recipe_id = recipe["id"]
+                    recipe_details = get_recipe_details(recipe_id, api_key)
+                    
+                    # Display recipe details
+                    st.subheader(recipe_details.get("title"))
+                    
+                    # Display recipe image
+                    image_url = recipe_details.get("image")
+                    if image_url:
+                        response = requests.get(image_url)
+                        img = Image.open(BytesIO(response.content))
+                        st.image(img, caption=recipe_details.get("title"))
+                    
+                    # Display recipe instructions
+                    instructions_html = recipe_details.get("instructions")
+                    if instructions_html:
+                        instructions_text = html_to_text(instructions_html)
+                        st.write("Instructions:")
+                        st.write(instructions_text)
+                    
+                    st.write("\n")
+            else:
+                st.write("No recipes found for this diet type.")
+        else:
+            st.write("API key is missing. Please add your Spoonacular API key.")
 
-        # Add user's message to chat and display it
-        st.chat_message("user").markdown(user_input)
-
-        # Send user's message to Gemini-Pro and get the response
-        gemini_response = st.session_state.chat_session.send_message(user_input)
-
-        # Display Gemini-Pro's response
-        with st.chat_message("assistant"):
-            st.markdown(gemini_response.text)
+if __name__ == "__main__":
+    diet_recommendation_app()
