@@ -1,67 +1,47 @@
-import os
 import streamlit as st
 from dotenv import load_dotenv
-import google.generativeai as gen_ai
+import ollama
 
 # Load environment variables
 load_dotenv()
 
-# Configure Streamlit page settings
-st.set_page_config(
-    page_title="Chat with Gemini-Pro!",
-    page_icon=":brain:",  # Favicon emoji
-    layout="centered",  # Page layout option
-)
-
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-# Set up Google Gemini-Pro AI model
-gen_ai.configure(api_key=GOOGLE_API_KEY)
-model = gen_ai.GenerativeModel('gemini-pro')
-
-# Function to translate roles between Gemini-Pro and Streamlit terminology
-def translate_role_for_streamlit(user_role):
-    if user_role == "model":
-        return "assistant"
-    else:
-        return user_role
-
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = None
-# Initialize chat session in Streamlit if not already present
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
-
-import streamlit as st
-
 def medichat_app():
-    # Display the chatbot's title on the page
-    st.title("‍⚕️ MediChat - Your Medical Assistant")
+    # Initialize session state for messages and full message
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = [{"role": "assistant", "content": "How can I assist you with your health today?"}]
 
-    # Ensure chat_session is initialized in session_state
-    if "chat_session" not in st.session_state:
-        st.session_state.chat_session = None
+    if "full_message" not in st.session_state:
+        st.session_state["full_message"] = ""
 
-    # Initialize chat session if not already present
-    if st.session_state.chat_session is None:
-        # Configure model here if needed (assuming model setup happens elsewhere)
-        model = gen_ai.GenerativeModel('gemini-pro')
-        st.session_state.chat_session = model.start_chat(history=[])
+    # Display the message history
+    for msg in st.session_state.messages:
+        st.chat_message(msg["role"], avatar="🧑‍💻" if msg["role"] == "user" else "🤖").write(msg["content"])
 
-    # Display the chat history
-    for message in st.session_state.chat_session.history:
-        with st.chat_message(translate_role_for_streamlit(message.role)):
-            st.markdown(message.parts[0].text)
+    # Function to generate a response
+    def generate_response():
+        response = ollama.chat(model='llama2', stream=True, messages=st.session_state.messages)
+        for partial_resp in response:
+            token = partial_resp["message"]["content"]
+            st.session_state["full_message"] += token
+            yield token
 
-    # Input field for user's message
-    user_prompt = st.chat_input("Ask MediChat...")
-    if user_prompt:
-        # Add user's message to chat and display it
-        st.chat_message("user").markdown(user_prompt)
+    # User input handling
+    prompt = st.chat_input("Type your message here...")
 
-        # Send user's message to Gemini-Pro and get the response
-        gemini_response = st.session_state.chat_session.send_message(user_prompt)
+    if prompt:
+        # Add user input to message history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user", avatar="🧑‍💻").write(prompt)
+        
+        # Add instruction to the system message for appropriate responses
+        professional_instruction = (
+            "You are a medical assistant providing basic medical information. Offer accurate, helpful, and polite responses based on established medical knowledge. "
+            "While you should be informative, ensure to advise users to consult a healthcare professional for personalized medical advice or serious concerns. "
+            "Provide clear explanations about symptoms, treatments, and general health tips as appropriate."
+        )
+        st.session_state.messages.append({"role": "system", "content": professional_instruction})
 
-        # Display Gemini-Pro's response
-        with st.chat_message("assistant"):
-            st.markdown(gemini_response.text)
+        # Generate the assistant's response
+        st.session_state["full_message"] = ""
+        st.chat_message("assistant", avatar="🤖").write_stream(generate_response)
+        st.session_state.messages.append({"role": "assistant", "content": st.session_state["full_message"]})
