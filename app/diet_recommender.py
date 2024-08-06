@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup  # Import BeautifulSoup for HTML parsing
 # Load environment variables
 load_dotenv()
 
+os.environ["api_key"] = "SPOONACULAR_API_KEY"
+
 # Function to convert HTML content to plain text with bullet points
 def html_to_text(html_content):
     soup = BeautifulSoup(html_content, "html.parser")
